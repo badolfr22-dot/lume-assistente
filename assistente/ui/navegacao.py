@@ -114,6 +114,12 @@ def executar() -> None:
     configuracao = config.configuracao()
     logging.basicConfig(level=configuracao.nivel_log, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
+    if configuracao.producao and not db.usando_postgres():
+        # Na hospedagem, o disco não é permanente: sem banco online os dados se perderiam.
+        st.error("O banco de dados online não está configurado. Quem administra o app precisa colocar uma "
+                 "ASSISTENTE_DATABASE_URL válida (começando com postgresql://) nos Secrets da hospedagem.")
+        st.stop()
+
     try:
         db.inicializar()
     except Exception:  # noqa: BLE001 - mensagem amigável, detalhe só no log
