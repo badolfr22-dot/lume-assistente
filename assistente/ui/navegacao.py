@@ -111,7 +111,8 @@ def _identificar_usuario(multiusuario: bool) -> dict | None:
 
 
 def executar() -> None:
-    configuracao = config.configuracao()
+    # Relê a configuração a cada acesso: os Secrets da hospedagem podem mudar sem reiniciar o processo.
+    configuracao = config.recarregar()
     logging.basicConfig(level=configuracao.nivel_log, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
     if configuracao.producao and not db.usando_postgres():
