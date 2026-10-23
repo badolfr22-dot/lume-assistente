@@ -2,6 +2,8 @@
 
 - Senhas nunca são guardadas: só um hash scrypt com sal aleatório.
 - Após 5 senhas erradas seguidas, a conta fica bloqueada por 5 minutos.
+- Após 20 códigos de convite errados em 10 minutos (somando todas as sessões), a criação de
+  contas pausa até a janela passar.
 - Excluir a conta apaga, em cascata, todos os dados daquela pessoa.
 """
 
@@ -12,6 +14,9 @@ import hashlib
 import hmac
 import re
 import secrets
+import threading
+import time
+from collections import deque
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -74,10 +79,52 @@ def _publico(linha: dict[str, Any] | None) -> dict[str, Any] | None:
     return {"id": linha["id"], "email": linha["email"], "nome": linha["nome"], "criado_em": linha["criado_em"]}
 
 
+class LimiteConvite:
+    """Limite GERAL (todas as sessões) de códigos de convite errados, contra robôs que tentam adivinhar.
+
+    Depois de `maximo` erros dentro da `janela`, a criação de contas fica pausada até a janela passar.
+    Fica na memória do processo: um reinício do app zera a contagem.
+    """
+
+    def __init__(self, maximo: int = 20, janela_s: float = 600) -> None:
+        self.maximo = maximo
+        self.janela_s = janela_s
+        self._erros: deque[float] = deque()
+        self._lock = threading.Lock()
+
+    def _limpar_antigos(self, agora: float) -> None:
+        while self._erros and agora - self._erros[0] >= self.janela_s:
+            self._erros.popleft()
+
+    def bloqueado(self, agora: float | None = None) -> bool:
+        agora = time.monotonic() if agora is None else agora
+        with self._lock:
+            self._limpar_antigos(agora)
+            return len(self._erros) >= self.maximo
+
+    def registrar_erro(self, agora: float | None = None) -> None:
+        agora = time.monotonic() if agora is None else agora
+        with self._lock:
+            self._limpar_antigos(agora)
+            self._erros.append(agora)
+
+    def zerar(self) -> None:
+        with self._lock:
+            self._erros.clear()
+
+
+limite_convite = LimiteConvite()
+MENSAGEM_CONVITE_BLOQUEADO = ("Muitas tentativas com código de convite errado. Por segurança, a criação de contas "
+                              "está pausada por alguns minutos. Tente novamente mais tarde.")
+
+
 def criar_conta(email: str, nome: str, senha: str, confirmacao: str, codigo_convite: str = "",
-                aceitou_privacidade: bool = False) -> dict[str, Any]:
+                aceitou_privacidade: bool = False, agora_monotonic: float | None = None) -> dict[str, Any]:
     esperado = config.configuracao().codigo_convite
-    if esperado and not hmac.compare_digest(codigo_convite.strip().encode(), esperado.encode()):
+    if esperado and limite_convite.bloqueado(agora_monotonic):
+        raise v.ErroValidacao(MENSAGEM_CONVITE_BLOQUEADO)
+    if esperado and not hmac.compare_digest((codigo_convite or "").strip().encode(), esperado.encode()):
+        limite_convite.registrar_erro(agora_monotonic)
         raise v.ErroValidacao("Código de convite incorreto. Peça o código a quem administra o app.")
     email = _validar_email(email)
     nome = v.texto_obrigatorio(nome, "Nome", 60)
