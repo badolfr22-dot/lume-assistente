@@ -83,6 +83,15 @@ As tabelas são criadas sozinhas na primeira vez que o app abrir.
 4. Para convidar alguém: mande o **link** e o **código de convite** por mensagem privada.
 5. Para parar de aceitar cadastros, troque o código nos Secrets (app → **Settings → Secrets**).
 
+## Problemas que já aconteceram (e a solução)
+
+- **"O banco de dados online não está configurado":** o Secret `ASSISTENTE_DATABASE_URL` ainda tinha o texto de
+  exemplo ou estava sem aspas. Corrija em *Manage app → ⋮ → Settings → Secrets*; o valor precisa estar
+  **entre aspas**: `ASSISTENTE_DATABASE_URL = "postgresql://...?sslmode=require"`.
+- **Botão "Save changes" desativado nos Secrets:** algum valor ficou sem aspas (o formato TOML fica inválido).
+- **Salvou, mas o aviso continua:** use *⋮ → Reboot app* (a versão atual já relê os Secrets a cada acesso).
+- **Não aparece a connection string no Neon:** confira se existe um projeto criado; ela fica em **Connect**.
+
 ## Manutenção
 
 - **Atualizar o app:** rode o Passo 1 de novo e envie os arquivos alterados para o GitHub
