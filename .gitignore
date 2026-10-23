@@ -1,0 +1,21 @@
+# Ambiente virtual
+.venv/
+
+# Dados pessoais (banco SQLite e backups) — nunca publicar
+dados/
+*.db
+*.db-wal
+*.db-shm
+backups/
+
+# Segredos
+.env
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Pasta gerada para enviar ao GitHub
+publicacao/

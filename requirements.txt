@@ -1,0 +1,5 @@
+# Dependências do aplicativo (versões testadas em 22/10/2026 com Python 3.15.0 no Windows 11).
+# As demais bibliotecas (pandas, pyarrow, numpy...) são instaladas automaticamente pelo Streamlit.
+streamlit==1.66.1
+# Driver do PostgreSQL (usado só quando ASSISTENTE_DATABASE_URL estiver definida, ex.: na hospedagem)
+psycopg[binary]==3.3.6
