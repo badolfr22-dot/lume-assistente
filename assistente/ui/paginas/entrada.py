@@ -74,9 +74,17 @@ def render() -> None:
                 criar = st.form_submit_button("Criar conta", type="primary", icon=":material/person_add:",
                                               width="stretch")
             if criar:
-                try:
-                    _entrar(usuarios.criar_conta(email_novo, nome, senha_nova, confirmacao, convite, aceitou))
-                except v.ErroValidacao as erro:
-                    st.error(str(erro), icon="⚠️")
+                # Limite por sessão; o limite geral (todas as sessões) fica em usuarios.limite_convite.
+                controle_convite = st.session_state.setdefault("_tentativas_convite", acesso.ControleTentativas())
+                if exige_convite and controle_convite.bloqueado():
+                    st.error("Muitas tentativas com código de convite errado. Aguarde um minuto e tente novamente.",
+                             icon="⚠️")
+                else:
+                    try:
+                        _entrar(usuarios.criar_conta(email_novo, nome, senha_nova, confirmacao, convite, aceitou))
+                    except v.ErroValidacao as erro:
+                        if str(erro).startswith("Código de convite incorreto"):
+                            controle_convite.registrar_erro()
+                        st.error(str(erro), icon="⚠️")
         st.caption("Esqueceu a senha? Por enquanto, peça ajuda a quem administra o app.")
     ui.mostrar_avisos()
