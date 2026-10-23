@@ -285,3 +285,16 @@ def test_duas_sessoes_nao_misturam_dados(monkeypatch):
     _enviar(at, "Entrar")
     assert "Progresso" in textos(at)
     assert "Tarefa secreta da Ana" not in textos(at)
+
+
+def test_producao_sem_banco_online_para_com_aviso(monkeypatch):
+    monkeypatch.setenv("ASSISTENTE_AMBIENTE", "producao")
+    monkeypatch.setenv("ASSISTENTE_DATABASE_URL", "COLE-AQUI-A-CONNECTION-STRING")
+    config.recarregar()
+    from assistente import db
+    db.definir_caminho_banco(None)
+    db.definir_url_banco(None)
+    at = AppTest.from_file(str(RAIZ / "app.py"), default_timeout=60)
+    at.run()
+    assert "banco de dados online não está configurado" in textos(at)
+    assert "Criar conta" not in textos(at)
