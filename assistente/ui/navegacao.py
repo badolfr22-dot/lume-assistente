@@ -116,8 +116,10 @@ def executar() -> None:
 
     if configuracao.producao and not db.usando_postgres():
         # Na hospedagem, o disco não é permanente: sem banco online os dados se perderiam.
+        motivo = config.diagnosticar_url_banco(configuracao.url_banco)
         st.error("O banco de dados online não está configurado. Quem administra o app precisa colocar uma "
-                 "ASSISTENTE_DATABASE_URL válida (começando com postgresql://) nos Secrets da hospedagem.")
+                 "ASSISTENTE_DATABASE_URL válida (começando com postgresql://) nos Secrets da hospedagem. "
+                 f"Motivo provável: {motivo}.")
         st.stop()
 
     try:
