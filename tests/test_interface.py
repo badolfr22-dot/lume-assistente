@@ -298,3 +298,23 @@ def test_producao_sem_banco_online_para_com_aviso(monkeypatch):
     at.run()
     assert "banco de dados online não está configurado" in textos(at)
     assert "Criar conta" not in textos(at)
+
+
+def test_tela_limita_tentativas_de_convite_por_sessao(monkeypatch):
+    monkeypatch.setenv("ASSISTENTE_CODIGO_CONVITE", "convite-certo-123")
+    at = _app_com_contas(monkeypatch)
+    from assistente import acesso
+    for i in range(acesso.TENTATIVAS_MAXIMAS):
+        campos = {t.label: t for t in at.text_input}
+        campos["Seu nome *"].input("Robô")
+        campos["E-mail *"].input(f"robo{i}@exemplo.com")
+        campos["Senha *"].input("senha1234")
+        campos["Confirme a senha *"].input("senha1234")
+        campos["Código de convite *"].input(f"chute{i}")
+        _enviar(at, "Criar conta")
+        assert "Código de convite incorreto" in textos(at)
+    campos = {t.label: t for t in at.text_input}
+    campos["Código de convite *"].input("convite-certo-123")
+    _enviar(at, "Criar conta")
+    assert "Aguarde um minuto" in textos(at)
+    assert "Progresso" not in textos(at)

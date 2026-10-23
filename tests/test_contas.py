@@ -58,6 +58,36 @@ def test_codigo_de_convite(monkeypatch):
     assert criar(codigo_convite="convite-123")["id"]
 
 
+def test_limite_geral_de_codigos_de_convite_errados(monkeypatch):
+    monkeypatch.setenv("ASSISTENTE_CODIGO_CONVITE", "convite-certo-123")
+    config.recarregar()
+    limite = u.limite_convite
+    for i in range(limite.maximo):
+        with pytest.raises(ErroValidacao, match="Código de convite incorreto"):
+            criar(email=f"robo{i}@exemplo.com", codigo_convite=f"chute{i}", agora_monotonic=1000.0 + i)
+    # Bloqueado: nem o código certo passa enquanto a janela não termina
+    with pytest.raises(ErroValidacao, match="pausada"):
+        criar(codigo_convite="convite-certo-123", agora_monotonic=1100.0)
+    assert db.consultar("SELECT COUNT(*) AS n FROM usuarios WHERE id != 1")[0]["n"] == 0
+    # Depois da janela, o código certo volta a funcionar
+    depois = 1000.0 + limite.maximo + limite.janela_s
+    assert criar(codigo_convite="convite-certo-123", agora_monotonic=depois)["id"]
+
+
+def test_codigo_certo_nao_conta_como_erro(monkeypatch):
+    monkeypatch.setenv("ASSISTENTE_CODIGO_CONVITE", "convite-certo-123")
+    config.recarregar()
+    criar(codigo_convite="convite-certo-123", agora_monotonic=1.0)
+    assert not u.limite_convite.bloqueado(2.0)
+    assert len(u.limite_convite._erros) == 0
+
+
+def test_sem_convite_configurado_nao_ha_limite():
+    for i in range(u.limite_convite.maximo + 5):
+        criar(email=f"pessoa{i}@exemplo.com", agora_monotonic=1.0)
+    assert not u.limite_convite.bloqueado(1.0)
+
+
 def test_login_errado_tem_mensagem_unica():
     criar()
     with pytest.raises(ErroValidacao) as senha_errada:

@@ -54,6 +54,8 @@ def banco_temporario(tmp_path, monkeypatch):
     monkeypatch.setenv("ASSISTENTE_AMBIENTE", "desenvolvimento")
     config.recarregar()
     db.definir_usuario(None)
+    from assistente import usuarios
+    usuarios.limite_convite.zerar()  # o limite é global no processo; cada teste começa do zero
     if URL_PG_TESTE:
         db.definir_url_banco(URL_PG_TESTE)
         _esvaziar_postgres()
