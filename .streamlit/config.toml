@@ -1,0 +1,28 @@
+[server]
+headless = true
+enableXsrfProtection = true
+maxUploadSize = 5
+runOnSave = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+showErrorDetails = "none"
+toolbarMode = "viewer"
+
+[logger]
+level = "warning"
+
+[theme]
+base = "light"
+primaryColor = "#0F766E"
+backgroundColor = "#F7F6F2"
+secondaryBackgroundColor = "#EDEBE4"
+textColor = "#1F2933"
+borderColor = "#DAD7CD"
+font = "'Segoe UI Variable Text', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif"
+headingFont = "'Segoe UI Variable Display', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif"
+baseRadius = "0.75rem"
+buttonRadius = "0.6rem"
+showWidgetBorder = true
