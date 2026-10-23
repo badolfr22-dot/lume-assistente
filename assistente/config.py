@@ -9,6 +9,7 @@ definidas no painel de segredos do serviço.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -32,6 +33,29 @@ def _ler_arquivo_env(caminho: Path) -> dict[str, str]:
         valor = valor.strip().strip('"').strip("'")
         valores[chave.strip()] = valor
     return valores
+
+
+_URL_POSTGRES = re.compile(r"postgres(?:ql)?://[^\s'\"]+")
+
+
+def extrair_url_banco(texto: str) -> str:
+    """Acha a URL do PostgreSQL mesmo se vier dentro de um comando copiado do painel do banco,
+    como `psql 'postgresql://...'` ou `DATABASE_URL=postgresql://...`."""
+    texto = (texto or "").strip()
+    achado = _URL_POSTGRES.search(texto)
+    return achado.group(0) if achado else texto
+
+
+def diagnosticar_url_banco(texto: str) -> str:
+    """Explica (sem mostrar a senha) por que o valor não é uma URL de PostgreSQL válida."""
+    texto = (texto or "").strip()
+    if not texto:
+        return "a variável ASSISTENTE_DATABASE_URL está vazia ou não foi encontrada nos Secrets"
+    if "COLE-AQUI" in texto.upper() or "CONNECTION-STRING" in texto.upper():
+        return "o valor ainda é o texto de exemplo, e não a connection string do Neon"
+    if "postgres" not in texto.lower():
+        return "o valor não contém um endereço que comece com postgresql://"
+    return "o valor parece incompleto; copie de novo a connection string inteira"
 
 
 def _ler_segredos_streamlit() -> dict[str, str]:
@@ -88,7 +112,7 @@ def carregar_configuracao(env: dict[str, str] | None = None) -> Configuracao:
     return Configuracao(
         ambiente=ambiente,
         caminho_banco=caminho_banco,
-        url_banco=env.get("ASSISTENTE_DATABASE_URL", "").strip(),
+        url_banco=extrair_url_banco(env.get("ASSISTENTE_DATABASE_URL", "")),
         nivel_log=nivel_log,
         senha_acesso=env.get("ASSISTENTE_SENHA_ACESSO", ""),
         provedor_ia=env.get("ASSISTENTE_IA_PROVEDOR", "regras").strip().lower() or "regras",
