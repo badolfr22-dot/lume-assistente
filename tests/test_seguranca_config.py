@@ -130,6 +130,35 @@ def test_secrets_do_streamlit_sao_lidos_e_ambiente_tem_prioridade(monkeypatch):
     assert cfg.codigo_convite == "do-ambiente"
 
 
+URL_FALSA = "postgresql://u" + ":s" + "@ep-x.neon.tech/neondb?sslmode=require"  # montada aqui de propósito
+
+
+@pytest.mark.parametrize("colado", [
+    URL_FALSA,
+    f"  {URL_FALSA}  ",
+    f"psql '{URL_FALSA}'",
+    f"DATABASE_URL={URL_FALSA}",
+    f'DATABASE_URL="{URL_FALSA}"',
+])
+def test_url_do_banco_e_extraida_de_formatos_copiados(colado):
+    from assistente import config
+    cfg = config.carregar_configuracao({"ASSISTENTE_DATABASE_URL": colado})
+    assert cfg.postgres
+    assert cfg.url_banco == URL_FALSA
+
+
+@pytest.mark.parametrize("valor, trecho", [
+    ("", "vazia"),
+    ("COLE-AQUI-A-CONNECTION-STRING-DO-NEON", "texto de exemplo"),
+    ("mysql://x", "não contém"),
+])
+def test_diagnostico_da_url_nao_mostra_o_valor(valor, trecho):
+    from assistente import config
+    motivo = config.diagnosticar_url_banco(valor)
+    assert trecho in motivo
+    assert not valor or valor not in motivo
+
+
 def test_sem_secrets_nao_quebra():
     from assistente import config
     assert isinstance(config._ler_segredos_streamlit(), dict)
